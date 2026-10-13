@@ -2,104 +2,149 @@ import streamlit as st
 import datetime
 import random
 
-st.set_page_config(page_title="TATU v2.2", page_icon="🥔", layout="centered")
+st.set_page_config(page_title="TATU v3.0 Voice", page_icon="🥔", layout="centered")
 
-st.markdown("<h1 style='text-align:center'>🥔 TATU v2.2 🇬🇭<br>UNRULY FIX 🔥</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center'>Built by Fuseini Manaf aka Popcaan - {datetime.date.today().strftime('%A, %d %B %Y')}</p>", unsafe_allow_html=True)
+# --- THEME ---
+if "light" not in st.session_state:
+    st.session_state.light = False
 
-if "name" not in st.session_state:
-    st.session_state.name = ""
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "moods" not in st.session_state:
-    st.session_state.moods = []
+theme = "light" if st.session_state.light else "dark"
+bg = "#f5f5f5" if st.session_state.light else "#0e1117"
+txt = "#000" if st.session_state.light else "#fff"
 
-# --- NAME ---
-name = st.text_input("Akwaaba! Your name, Unruly Boss?", value=st.session_state.name)
+st.markdown(f"<style>.stApp {{ background-color: {bg}; color: {txt}; }} </style>", unsafe_allow_html=True)
+
+st.markdown(f"<h1 style='text-align:center'>🥔 TATU v3.0 🇬🇭<br>VOICE + MEMORY 🔊</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align:center'>Built by Fuseini Manaf aka Popcaan | {datetime.date.today().strftime('%A, %d %B %Y')}</p>", unsafe_allow_html=True)
+
+colA, colB = st.columns(2)
+with colA:
+    if st.button("🌓 Toggle Light/Dark"):
+        st.session_state.light = not st.session_state.light
+        st.rerun()
+with colB:
+    st.caption(f"Mode: {theme.upper()}")
+
+# --- MEMORY ---
+for k in ["name","history","moods","goal"]:
+    if k not in st.session_state:
+        st.session_state[k] = [] if k in ["history","moods"] else ""
+
+name = st.text_input("Akwaaba Unruly Boss! Your name?", value=st.session_state.name)
 if not name:
-    st.info("👆 Enter name first!")
+    st.info("Enter name make we start!")
     st.stop()
 st.session_state.name = name
-st.success(f"Yo {name}! Wah gwaan! TATU v2.2 ACTIVE! 🔥👊🏾")
+
+# --- DAILY GOAL ---
+st.divider()
+st.subheader("🎯 Today's Unruly Goal")
+goal = st.text_input("Set goal today:", value=st.session_state.goal if isinstance(st.session_state.goal, str) else "", placeholder="eg: Code 1hr, pray, gym...")
+if st.button("Save Goal"):
+    st.session_state.goal = goal
+    st.success(f"Goal locked: {goal} 🔥")
+
+if st.session_state.goal:
+    st.info(f"🎯 {name} goal: {st.session_state.goal}")
 
 # --- MOOD ---
-st.divider()
-st.subheader("😎 How your mood dey today?")
-moods_list = ["😊 Happy", "🔥 Unruly", "😔 Low", "😴 Tired", "😤 Stressed", "🥳 Celebrating", "❤️ Loved"]
-mood = st.selectbox("Select mood:", moods_list)
-
+st.subheader("😎 Mood Tracker v3.0")
+moods_list = ["😊 Happy", "🔥 Unruly", "😔 Low", "😴 Tired", "😤 Stressed", "🥳 Celebrating", "❤️ Loved", "💪 Motivated"]
+mood = st.selectbox("Mood:", moods_list)
 c1, c2 = st.columns(2)
 with c1:
     if st.button("Save Mood 💾", use_container_width=True):
-        st.session_state.moods.append({"mood": mood, "time": datetime.datetime.now().strftime("%d %b %H:%M")})
+        st.session_state.moods.append({"mood": mood, "time": datetime.datetime.now().strftime("%d %b %H:%M"), "day": str(datetime.date.today())})
         st.balloons()
-        st.toast(f"Saved: {mood}")
 with c2:
-    if st.button("Clear All 🗑️", use_container_width=True):
+    if st.button("Clear 🗑️", use_container_width=True):
         st.session_state.moods = []
         st.session_state.history = []
         st.rerun()
 
 if st.session_state.moods:
-    st.metric("🔥 Streak", f"{len(st.session_state.moods)} saves", "Unruly!")
-    # FIXED CHART - proper data
+    st.metric("🔥 Streak", f"{len(st.session_state.moods)}", f"Last: {st.session_state.moods[-1]['mood']}")
     chart_data = {}
     for m in st.session_state.moods:
-        clean = m["mood"]
-        chart_data[clean] = chart_data.get(clean, 0) + 1
+        chart_data[m["mood"]] = chart_data.get(m["mood"], 0) + 1
     st.bar_chart(chart_data)
-    with st.expander("📜 Mood History"):
-        for m in reversed(st.session_state.moods[-10:]):
+    with st.expander(f"📜 History ({len(st.session_state.moods)})"):
+        for m in reversed(st.session_state.moods[-15:]):
             st.write(f"{m['time']} - {m['mood']}")
 
-# --- CHAT - v2.2 UNRULY BRAIN ---
+# --- CHAT v3.0 WITH VOICE ---
 st.divider()
-st.subheader("💬 Chat with TATU - Popcaan Style")
-user_input = st.text_input("Talk:", placeholder="Type: wahgwan, joke, time, motivation...")
+st.subheader("💬 Chat + Voice - Popcaan Style")
 
-def unruly_reply(msg, name):
+popcaan_quotes = [
+    "Unruly nuh stop till di casket drop!",
+    "Family over money, loyalty over royalty!",
+    "We never fail, we only learn!",
+    "Real boss nuh need fi talk much!",
+    "Kumasi to Kingston, we run di place!"
+]
+
+def get_reply_v3(msg, name):
     m = msg.lower().strip()
     now = datetime.datetime.now()
 
-    # WAHGWAN FIX
-    if m in ["wahgwan", "wah gwan", "wagwan", "weh di", "weh yah seh", "yo", "yow", "wahgwaan", "weagwan"]:
+    if m in ["wahgwan","wah gwan","wagwan","weh di","yow","yo","wahgwaan","weagwan","wag"]:
         return random.choice([
-            f"YOWW {name}! Wah gwaan! A di Unruly Boss TATU! Everyting criss, everyting set! 🇯🇲🔥",
-            f"Wah gwaan {name}! Mi deh yah, active! Kumasi to Kingston link up! 🇬🇭🇯🇲",
-            f"Yo {name}! Unruly neva stop! Yuh dun know seh we a run di place? Big up! 👊🏾",
-            f"Weh yah seh {name}! Mi good! TATU active, mood tracking, chart drawing! We outside! 🔥"
+            f"YOWWW {name}! Wah gwaan! A TATU v3.0! Mi get VOICE now! Everyting loud! 🔊🔥",
+            f"Wah gwaan {name}! Mi deh yah ACTIVE with voice! Kumasi to Kingston link up! 🇬🇭🇯🇲",
+            f"Unruly Boss {name}! Wah gwaan? Mi can TALK now! Press speaker! 🔊"
         ])
     if "time" in m:
-        return f"⏰ Time be {now.strftime('%I:%M %p')} - {now.strftime('%A, %d %B %Y')}. Unruly time, yuh know! 🔥"
-    if "date" in m or "today" in m:
-        return f"📅 Today a {now.strftime('%A, %d %B %Y')}. Unruly day fi make money! 💰"
+        return f"⏰ {now.strftime('%I:%M %p')} - {now.strftime('%A, %d %B %Y')}. Unruly time! 🔊"
+    if "goal" in m:
+        return f"🎯 Your goal: {st.session_state.goal if st.session_state.goal else 'No goal yet! Set one!'} - Unruly focus!"
+    if "quote" in m or "popcaan" in m:
+        return f"👑 Popcaan Quote: '{random.choice(popcaan_quotes)}' - Big up {name}!"
     if "who" in m:
-        return f"🥔 I be TATU v2.2 - Built by {name} aka Popcaan Unruly Boss for Kumasi! I track mood, draw chart, and talk dancehall! Phone developer ting! 📱"
-    if "popcaan" in m or "unruly" in m:
-        return f"🔥 UNRULY BOSS! Popcaan say 'Family over money, loyalty over royalty!' {name}, you be family! Real unruly vibes! 👑"
+        return f"🥔 I be TATU v3.0 VOICE EDITION! Built by {name} Popcaan! I get memory, voice, mood chart! Phone built! 📱🔥"
     if "joke" in m:
-        return random.choice([
-            f"😂 Yo {name}, why TATU no dey fear? Cause e be potato - e get too many eyes but no fear! 🥔👀",
-            "Why Ghana jollof unruly? Cause e always too hot fi handle! 🔥🍚",
-            "Popcaan nuh joke! But TATU joke: Mi potato but mi smarter than laptop! 😎"
-        ])
-    if "motivat" in m or "inspire" in m or "sad" in m or "low" in m:
-        return f"💪🏾 Yo {name}, listen di Unruly Boss: Yuh build AI from phone! No laptop! That mean yuh can do ANYTHING! Head up! Unruly nuh give up! From Kumasi to the world! 🌍🔥"
+        return random.choice([f"😂 {name}, TATU get voice now but still potato! 🥔🔊", "Why AI no need sleep? Cause e unruly! No rest! 🔥"])
+    if "motivat" in m or "low" in m or "sad" in m:
+        return f"💪🏾 {name}, {random.choice(popcaan_quotes)} You build v3.0 from phone! No man can stop you! 🚀"
     if "hello" in m or "hi" in m:
-        return f"Wah gwaan {name}! TATU deh yah! How yuh mood? Save mood first then we gist! 🇬🇭"
-
+        return f"Wah gwaan {name}! TATU v3.0 ready! I get voice now! Type 'wahgwan' or 'quote'! 🇯🇲"
     return random.choice([
-        f"Real talk {name}, you say '{msg}' - TATU rate that! Try 'wahgwan', 'joke', or 'motivation' fi hear unruly vibes! 🔥",
-        f"Yo {name}, '{msg}'? Copy that! Unruly Boss TATU dey listen! We active! 👊🏾",
-        f"Big up {name}! '{msg}' noted! Now save your mood make we grow di streak! 📊"
+        f"Big up {name}! You say '{msg}' - TATU v3.0 hear with MEMORY! 🧠",
+        f"Yo {name}, '{msg}' saved for history! Unruly memory active!",
+        f"Real talk {name}, try 'wahgwan', 'quote', 'goal', 'time', 'joke' - v3.0 get many vibes!"
     ])
 
+user_input = st.text_input("Talk to TATU:", placeholder="Type wahgwan, quote, goal, joke...", key="chat")
+
+# VOICE FUNCTION - JS speech
+def speak(text):
+    # Escape quotes for JS
+    safe = text.replace("'", "").replace('"','').replace("\n"," ")
+    js = f"""
+    <script>
+    var msg = new SpeechSynthesisUtterance();
+    msg.text = "{safe}";
+    msg.rate = 0.95;
+    msg.pitch = 0.9;
+    window.speechSynthesis.speak(msg);
+    </script>
+    """
+    st.components.v1.html(js, height=0)
+
 if user_input:
-    reply = unruly_reply(user_input, name)
+    reply = get_reply_v3(user_input, name)
     st.session_state.history.append((user_input, reply))
+    st.session_state.last_reply = reply
+
+# Show chats with VOICE button
+if "last_reply" in st.session_state and st.session_state.last_reply:
+    if st.button("🔊 PLAY VOICE - Make TATU Talk!"):
+        speak(st.session_state.last_reply)
 
 for q, a in reversed(st.session_state.history):
     st.chat_message("user").write(f"{name}: {q}")
     st.chat_message("assistant").write(f"TATU: {a}")
 
-st.caption("v2.2 - Fixed wahgwan, fixed chart, more unruly! v3.0 go get voice!")
+st.divider()
+st.caption("v3.0 Voice + Memory + Goals + Light/Dark | Next v4.0: Save to database forever! | Built by Popcaan Unruly Boss")
+st.caption("Tip: Turn on phone volume! 🔊 Press PLAY VOICE after TATU reply!")
