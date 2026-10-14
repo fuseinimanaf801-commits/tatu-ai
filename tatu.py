@@ -1,150 +1,178 @@
 import streamlit as st
-import datetime
-import random
+import datetime, json, os, random
 
-st.set_page_config(page_title="TATU v3.0 Voice", page_icon="🥔", layout="centered")
+st.set_page_config(page_title="TATU v4.0 Forever", page_icon="🥔", layout="centered")
 
-# --- THEME ---
-if "light" not in st.session_state:
-    st.session_state.light = False
+# --- FOREVER SAVE SYSTEM ---
+DB_FILE = "tatu_forever_db.json"
 
-theme = "light" if st.session_state.light else "dark"
-bg = "#f5f5f5" if st.session_state.light else "#0e1117"
-txt = "#000" if st.session_state.light else "#fff"
+def load_db():
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
 
-st.markdown(f"<style>.stApp {{ background-color: {bg}; color: {txt}; }} </style>", unsafe_allow_html=True)
+def save_db(data):
+    try:
+        with open(DB_FILE, "w") as f:
+            json.dump(data, f)
+    except:
+        pass
 
-st.markdown(f"<h1 style='text-align:center'>🥔 TATU v3.0 🇬🇭<br>VOICE + MEMORY 🔊</h1>", unsafe_allow_html=True)
+if "db" not in st.session_state:
+    st.session_state.db = load_db()
+
+st.markdown("<h1 style='text-align:center'>🥔 TATU v4.0 🇬🇭<br>FOREVER EDITION 💾</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align:center'>Built by Fuseini Manaf aka Popcaan | {datetime.date.today().strftime('%A, %d %B %Y')}</p>", unsafe_allow_html=True)
+st.caption("💾 New: Your moods & chats save FOREVER! Even after you close app!")
 
-colA, colB = st.columns(2)
-with colA:
-    if st.button("🌓 Toggle Light/Dark"):
-        st.session_state.light = not st.session_state.light
-        st.rerun()
-with colB:
-    st.caption(f"Mode: {theme.upper()}")
-
-# --- MEMORY ---
-for k in ["name","history","moods","goal"]:
-    if k not in st.session_state:
-        st.session_state[k] = [] if k in ["history","moods"] else ""
-
-name = st.text_input("Akwaaba Unruly Boss! Your name?", value=st.session_state.name)
-if not name:
-    st.info("Enter name make we start!")
-    st.stop()
-st.session_state.name = name
-
-# --- DAILY GOAL ---
+# --- LOGIN / MULTI-USER ---
 st.divider()
-st.subheader("🎯 Today's Unruly Goal")
-goal = st.text_input("Set goal today:", value=st.session_state.goal if isinstance(st.session_state.goal, str) else "", placeholder="eg: Code 1hr, pray, gym...")
-if st.button("Save Goal"):
-    st.session_state.goal = goal
-    st.success(f"Goal locked: {goal} 🔥")
+st.subheader("🔐 Login - Unruly Family")
 
-if st.session_state.goal:
-    st.info(f"🎯 {name} goal: {st.session_state.goal}")
+name = st.text_input("Enter your Unruly Name:", placeholder="eg: Manaf, Hajia Rams...").strip()
+if not name:
+    st.info("👆 Enter name to load your forever data!")
+    st.stop()
 
-# --- MOOD ---
-st.subheader("😎 Mood Tracker v3.0")
-moods_list = ["😊 Happy", "🔥 Unruly", "😔 Low", "😴 Tired", "😤 Stressed", "🥳 Celebrating", "❤️ Loved", "💪 Motivated"]
-mood = st.selectbox("Mood:", moods_list)
-c1, c2 = st.columns(2)
+name = name.title()
+# Load or create user
+if name not in st.session_state.db:
+    st.session_state.db[name] = {"moods": [], "history": [], "goal": "", "joined": str(datetime.date.today())}
+    save_db(st.session_state.db)
+
+user_data = st.session_state.db[name]
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("👤 User", name)
+with col2:
+    st.metric("📅 Joined", user_data.get("joined","Today"))
+with col3:
+    st.metric("🔥 Total Moods", len(user_data["moods"]))
+
+# --- GOAL FOREVER ---
+st.subheader("🎯 Forever Goal")
+goal = st.text_input("Today's goal:", value=user_data.get("goal",""), placeholder="Code TATU v5.0")
+if st.button("Save Goal Forever 💾"):
+    st.session_state.db[name]["goal"] = goal
+    save_db(st.session_state.db)
+    st.success(f"Goal saved forever for {name}: {goal}")
+    st.balloons()
+
+# --- MOOD FOREVER ---
+st.subheader("😎 Mood Tracker - FOREVER SAVE")
+moods_list = ["😊 Happy", "🔥 Unruly", "😔 Low", "😴 Tired", "😤 Stressed", "🥳 Celebrating", "❤️ Loved", "💪 Motivated", "🧠 Focused"]
+mood = st.selectbox("How you dey?", moods_list)
+
+c1, c2, c3 = st.columns(3)
 with c1:
     if st.button("Save Mood 💾", use_container_width=True):
-        st.session_state.moods.append({"mood": mood, "time": datetime.datetime.now().strftime("%d %b %H:%M"), "day": str(datetime.date.today())})
+        entry = {"mood": mood, "time": datetime.datetime.now().strftime("%d %b %H:%M"), "date": str(datetime.date.today())}
+        st.session_state.db[name]["moods"].append(entry)
+        save_db(st.session_state.db)
+        st.success(f"Saved forever: {mood}")
         st.balloons()
 with c2:
-    if st.button("Clear 🗑️", use_container_width=True):
-        st.session_state.moods = []
-        st.session_state.history = []
+    if st.button("Weekly 📊", use_container_width=True):
+        st.session_state.show_weekly = True
+with c3:
+    if st.button("Clear My Data 🗑️", use_container_width=True):
+        st.session_state.db[name] = {"moods": [], "history": [], "goal": "", "joined": str(datetime.date.today())}
+        save_db(st.session_state.db)
         st.rerun()
 
-if st.session_state.moods:
-    st.metric("🔥 Streak", f"{len(st.session_state.moods)}", f"Last: {st.session_state.moods[-1]['mood']}")
+moods = st.session_state.db[name]["moods"]
+if moods:
+    # Chart
     chart_data = {}
-    for m in st.session_state.moods:
+    for m in moods:
         chart_data[m["mood"]] = chart_data.get(m["mood"], 0) + 1
     st.bar_chart(chart_data)
-    with st.expander(f"📜 History ({len(st.session_state.moods)})"):
-        for m in reversed(st.session_state.moods[-15:]):
+
+    # Weekly
+    if st.session_state.get("show_weekly"):
+        st.info(f"📅 This week: {len(moods)} moods tracked. Last 7: " + ", ".join([m['mood'] for m in moods[-7:]]))
+
+    with st.expander(f"📜 {name} Forever History ({len(moods)})"):
+        for m in reversed(moods[-20:]):
             st.write(f"{m['time']} - {m['mood']}")
 
-# --- CHAT v3.0 WITH VOICE ---
+# --- CHAT FOREVER ---
 st.divider()
-st.subheader("💬 Chat + Voice - Popcaan Style")
+st.subheader("💬 Chat + Voice - Forever Memory")
 
 popcaan_quotes = [
-    "Unruly nuh stop till di casket drop!",
     "Family over money, loyalty over royalty!",
     "We never fail, we only learn!",
-    "Real boss nuh need fi talk much!",
-    "Kumasi to Kingston, we run di place!"
+    "Kumasi to Kingston, we run di place!",
+    "Unruly nuh stop till di casket drop!",
+    "Real boss move in silence!",
+    "From phone we build empire - Unruly!",
+    "Every ghetto youth can be star!",
+    "No weapon formed against us shall prosper!"
 ]
 
-def get_reply_v3(msg, name):
+def get_v4_reply(msg, name):
     m = msg.lower().strip()
     now = datetime.datetime.now()
+    moods = st.session_state.db[name]["moods"]
+    last_mood = moods[-1]["mood"] if moods else "No mood yet"
 
-    if m in ["wahgwan","wah gwan","wagwan","weh di","yow","yo","wahgwaan","weagwan","wag"]:
+    if m in ["wahgwan","wagwan","yo","yow","wah gwan","wahgwaan","weagwan"]:
         return random.choice([
-            f"YOWWW {name}! Wah gwaan! A TATU v3.0! Mi get VOICE now! Everyting loud! 🔊🔥",
-            f"Wah gwaan {name}! Mi deh yah ACTIVE with voice! Kumasi to Kingston link up! 🇬🇭🇯🇲",
-            f"Unruly Boss {name}! Wah gwaan? Mi can TALK now! Press speaker! 🔊"
+            f"YOWWW {name}! Wah gwaan! v4.0 FOREVER! I remember you! You get {len(moods)} moods saved! 🔊🔥",
+            f"Wah gwaan {name}! I remember your last mood be {last_mood}! Unruly memory never forget! 🇬🇭🇯🇲",
+            f"Yo {name}! Welcome back! Forever edition! Your data dey safe! {len(moods)} memories! 💾"
         ])
     if "time" in m:
-        return f"⏰ {now.strftime('%I:%M %p')} - {now.strftime('%A, %d %B %Y')}. Unruly time! 🔊"
-    if "goal" in m:
-        return f"🎯 Your goal: {st.session_state.goal if st.session_state.goal else 'No goal yet! Set one!'} - Unruly focus!"
+        return f"⏰ {now.strftime('%I:%M %p')} - {now.strftime('%A, %d %B %Y')} | Your forever moods: {len(moods)} 🔥"
+    if "how many" in m or "stats" in m or "my moods" in m:
+        return f"📊 {name}, you get {len(moods)} moods forever! Last be {last_mood}. Goal be: {st.session_state.db[name].get('goal','No goal')}"
     if "quote" in m or "popcaan" in m:
-        return f"👑 Popcaan Quote: '{random.choice(popcaan_quotes)}' - Big up {name}!"
+        return f"👑 Popcaan: '{random.choice(popcaan_quotes)}' - Big up {name}! Forever unruly! 🔥"
     if "who" in m:
-        return f"🥔 I be TATU v3.0 VOICE EDITION! Built by {name} Popcaan! I get memory, voice, mood chart! Phone built! 📱🔥"
+        return f"🥔 I be TATU v4.0 FOREVER! I remember {name} since {st.session_state.db[name].get('joined')}. {len(moods)} moods, I never forget! 📱💾"
     if "joke" in m:
-        return random.choice([f"😂 {name}, TATU get voice now but still potato! 🥔🔊", "Why AI no need sleep? Cause e unruly! No rest! 🔥"])
-    if "motivat" in m or "low" in m or "sad" in m:
-        return f"💪🏾 {name}, {random.choice(popcaan_quotes)} You build v3.0 from phone! No man can stop you! 🚀"
-    if "hello" in m or "hi" in m:
-        return f"Wah gwaan {name}! TATU v3.0 ready! I get voice now! Type 'wahgwan' or 'quote'! 🇯🇲"
+        return f"😂 {name}, v4.0 joke: I never forget because I be elephant potato! 🐘🥔 {len(moods)} memories!"
+    if "motivat" in m or "low" in m:
+        return f"💪🏾 {name}, you from v1 to v4.0! {len(moods)} moods tracked! {random.choice(popcaan_quotes)} You dey go far! 🚀"
+    if "goal" in m:
+        return f"🎯 {name} goal forever: {st.session_state.db[name].get('goal','Set one!')} - Keep pushing!"
     return random.choice([
-        f"Big up {name}! You say '{msg}' - TATU v3.0 hear with MEMORY! 🧠",
-        f"Yo {name}, '{msg}' saved for history! Unruly memory active!",
-        f"Real talk {name}, try 'wahgwan', 'quote', 'goal', 'time', 'joke' - v3.0 get many vibes!"
+        f"Big up {name}! '{msg}' saved forever! 🧠💾",
+        f"Yo {name}, '{msg}'? Noted! I remember everything now! Forever! 🔥",
+        f"Real talk {name}, try 'wahgwan', 'stats', 'quote', 'goal' - v4.0 remember you!"
     ])
 
-user_input = st.text_input("Talk to TATU:", placeholder="Type wahgwan, quote, goal, joke...", key="chat")
+chat_input = st.text_input("Talk to Forever TATU:", placeholder="wahgwan, stats, quote, joke...", key="v4chat")
 
-# VOICE FUNCTION - JS speech
 def speak(text):
-    # Escape quotes for JS
-    safe = text.replace("'", "").replace('"','').replace("\n"," ")
-    js = f"""
-    <script>
-    var msg = new SpeechSynthesisUtterance();
-    msg.text = "{safe}";
-    msg.rate = 0.95;
-    msg.pitch = 0.9;
-    window.speechSynthesis.speak(msg);
-    </script>
-    """
+    safe = text.replace("'", "").replace('"','').replace("\n"," ")[:300]
+    js = f"""<script>var msg=new SpeechSynthesisUtterance();msg.text="{safe}";msg.rate=0.95;window.speechSynthesis.speak(msg);</script>"""
     st.components.v1.html(js, height=0)
 
-if user_input:
-    reply = get_reply_v3(user_input, name)
-    st.session_state.history.append((user_input, reply))
+if chat_input:
+    reply = get_v4_reply(chat_input, name)
+    st.session_state.db[name]["history"].append((chat_input, reply, datetime.datetime.now().strftime("%H:%M")))
+    if len(st.session_state.db[name]["history"]) > 50:
+        st.session_state.db[name]["history"] = st.session_state.db[name]["history"][-50:]
+    save_db(st.session_state.db)
     st.session_state.last_reply = reply
 
-# Show chats with VOICE button
-if "last_reply" in st.session_state and st.session_state.last_reply:
-    if st.button("🔊 PLAY VOICE - Make TATU Talk!"):
+if st.session_state.get("last_reply"):
+    if st.button("🔊 PLAY VOICE"):
         speak(st.session_state.last_reply)
 
-for q, a in reversed(st.session_state.history):
-    st.chat_message("user").write(f"{name}: {q}")
-    st.chat_message("assistant").write(f"TATU: {a}")
+# Show forever chat
+history = st.session_state.db[name]["history"]
+for q, a, t in reversed(history[-15:]):
+    st.chat_message("user").write(f"{name} [{t}]: {q}")
+    st.chat_message("assistant").write(f"TATU Forever: {a}")
 
 st.divider()
-st.caption("v3.0 Voice + Memory + Goals + Light/Dark | Next v4.0: Save to database forever! | Built by Popcaan Unruly Boss")
-st.caption("Tip: Turn on phone volume! 🔊 Press PLAY VOICE after TATU reply!")
+st.caption(f"💾 v4.0 Forever | User: {name} | {len(moods)} moods | Built by Popcaan Unruly Boss | Next v5.0: AI API!")
+st.caption("Data saves forever in cloud! Even Hajia Rams call can't delete am! 😂🔥")
