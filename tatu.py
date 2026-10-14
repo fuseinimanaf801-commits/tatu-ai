@@ -1,90 +1,136 @@
 import streamlit as st
-import datetime, json, os, random
+import os
 
-st.set_page_config(page_title="TATU v5.1 Smart", page_icon="🥔", layout="centered")
+st.set_page_config(page_title="TATU AI - ChatGPT Brain", page_icon="🧠", layout="wide")
 
-DB_FILE = "tatu_forever_db.json"
-def load_db():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r") as f: return json.load(f)
-        except: return {}
-    return {}
-def save_db(d):
+# --- API KEY ---
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    api_key = os.getenv("OPENAI_API_KEY", "")
+
+# --- CHECK BRAIN ---
+has_brain = False
+client = None
+if api_key and api_key.startswith("gsk_"):
     try:
-        with open(DB_FILE, "w") as f: json.dump(d, f)
-    except: pass
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        has_brain = True
+    except:
+        has_brain = False
 
+# --- SESSION STATE FIX ---
 if "db" not in st.session_state:
-    st.session_state.db = load_db()
+    st.session_state.db = {}
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-st.markdown("<h1 style='text-align:center'>🥔 TATU v5.1 🇬🇭 SMART 🧠</h1>", unsafe_allow_html=True)
-st.success("✅ v5.1 Smart Offline - No key needed! Answers photosynthesis!")
+# Fix old bad data automatically
+try:
+    for k in list(st.session_state.db.keys()):
+        cleaned = []
+        for item in st.session_state.db[k]:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                cleaned.append(item)
+        st.session_state.db[k] = cleaned
+except:
+    st.session_state.db = {}
 
-name = st.text_input("Name:", value="Manaf").strip().title()
-if not name: st.stop()
-if name not in st.session_state.db:
-    st.session_state.db[name] = {"moods": [], "history": [], "goal": "", "joined": str(datetime.date.today())}
-    save_db(st.session_state.db)
+# --- HEADER ---
+st.title("🇬🇭 TATU AI v6.0")
 
-moods = st.session_state.db[name]["moods"]
-st.metric(f"{name} Moods", len(moods))
+if has_brain:
+    st.success("🧠🔥 CHATGPT BRAIN ACTIVE! Ask ANYTHING!")
+else:
+    st.warning("⚠️ Add Groq API Key in Secrets to activate ChatGPT Brain")
 
-# SMART BRAIN - NO API NEEDED!
-def smart_brain(q, name):
-    m = q.lower()
-    # Science
-    if "photosynthesis" in m:
-        return f"🌱 Photosynthesis be how plants make food! Plants use sunlight + CO2 + water -> make sugar (glucose) + oxygen! Equation: 6CO2 + 6H2O + sunlight -> C6H12O6 + 6O2. Plants be chefs! Big up {name}! 🇬🇭"
-    if "mitosis" in m or "meiosis" in m:
-        return f"🧬 Mitosis = 1 cell -> 2 identical cells (for growth). Meiosis = 1 cell -> 4 different cells (for babies). Mitosis for body, meiosis for reproduction! 🔥"
-    if "gravity" in m or "newton" in m:
-        return f"🍎 Gravity = force wey pull everything down! Newton: F=ma. Einstein say gravity bend space-time! Why you no float go sky? Gravity hold you! {name}!"
-    if "water" in m and "formula" in m:
-        return "💧 Water na H2O - 2 Hydrogen + 1 Oxygen! Life no dey without am!"
-    # Math
-    if "2+2" in m or "2 + 2" in m:
-        return f"🧮 2+2 = 4! Unruly math! {name} you smart!"
-    # Popcaan
-    if "who is popcaan" in m:
-        return "👑 Popcaan na Jamaican dancehall superstar! Real name Andre Sutherland. Hit songs: Only Man She Want, Family. Unruly Boss! 🇯🇲"
-    if "fuseini manaf" in m or "who is manaf" in m:
-        return f"👑 Fuseini Manaf aka Popcaan na Kumasi boss! Built TATU v5.1 from phone! No laptop! Real Unruly dev! From Ghana to the world! {name} be legend! 🚀"
-    # General
-    if "wahgwan" in m or "wagwan" in m or m in ["yo","yow"]:
-        return f"YOWWW {name}! v5.1 SMART! I fit answer photosynthesis, science, math now! No key needed! Ask me anything! 🔥"
-    if "stats" in m:
-        return f"📊 {name}: {len(moods)} moods forever, Goal: {st.session_state.db[name].get('goal','Set goal')}, Joined: {st.session_state.db[name].get('joined')}"
-    if "quote" in m:
-        return random.choice(["Family over money, loyalty over royalty! - Popcaan", "Unruly nuh stop till casket drop!", "Kumasi to Kingston, we run di place!", "We never fail, we only learn!"])
-    if "joke" in m:
-        return f"😂 Why potato never fight? Because e be TATU! 🥔 Big up {name}!"
-    if "code" in m or "python" in m:
-        return f"💻 Python example:\nprint('Unruly {name}!')\nfor i in range(3): print(f'Big up {{i}}')\n# TATU v5.1 from Kumasi! 🇬🇭"
-    # Fallback smart
-    if len(m) > 3:
-        return f"🧠 Yo {name}, you ask '{q}'. My smart brain: I know photosynthesis, gravity, mitosis, math, Popcaan, coding! Try 'what is photosynthesis' or 'who is Popcaan' or 'tell me joke'! If you want ChatGPT-level, add free Groq key later! 🔥"
-    return f"Big up {name}! Ask me 'what is photosynthesis' now e go work!"
+# --- CHAT DISPLAY - FIXED LINE 84 BUG ---
+# This replaces the old buggy line
+chat_container = st.container()
+with chat_container:
+    # Show chat history
+    if "chat_history" in st.session_state:
+        for item in reversed(st.session_state.chat_history[-20:]):
+            try:
+                # FIXED: Safe unpacking - handles 2, 3 or more values
+                if isinstance(item, (list, tuple)):
+                    role = item[0] if len(item) > 0 else "user"
+                    content = item[1] if len(item) > 1 else ""
+                else:
+                    role = "user"
+                    content = str(item)
 
-q = st.text_input("Ask SMART TATU:", placeholder="What is photosynthesis? Who is Popcaan? 2+2?")
+                if role == "user":
+                    st.chat_message("user").write(content)
+                else:
+                    st.chat_message("assistant").write(content)
+            except:
+                continue
 
-if q:
-    ans = smart_brain(q, name)
-    st.session_state.db[name]["history"].append((q, ans))
-    st.session_state.db[name]["history"] = st.session_state.db[name]["history"][-20:]
-    save_db(st.session_state.db)
-    st.session_state.last = ans
+# Also fix db display if you use db
+if "db" in st.session_state and st.session_state.db:
+    for n in list(st.session_state.db.keys())[:1]: # show first
+        try:
+            for item in reversed(st.session_state.db[n][-20:]):
+                try:
+                    a = item[0] if len(item) > 0 else ""
+                    b = item[1] if len(item) > 1 else ""
+                    # your old logic here if needed
+                except:
+                    continue
+        except:
+            pass
 
-if st.session_state.get("last"):
-    st.write(f"TATU v5.1: {st.session_state.last}")
-    if st.button("🔊 PLAY"):
-        safe=st.session_state.last.replace("'","").replace('"',"")[:350]
-        st.components.v1.html(f"<script>var u=new SpeechSynthesisUtterance();u.text='{safe}';speechSynthesis.speak(u);</script>",height=0)
+# --- CHAT INPUT ---
+prompt = st.chat_input("Ask TATU anything...")
 
-for item in reversed(st.session_state.db[n]):
-    a, b = item[:2] if len(item) >= 2 else (item[0], "")
-    st.write(f"You: {a}")
-    st.write(f"TATU: {b}")
-    st.write("---")
+if prompt:
+    # Save user message
+    st.session_state.chat_history.append(("user", prompt))
+    if "general" not in st.session_state.db:
+        st.session_state.db["general"] = []
+    st.session_state.db["general"].append(("user", prompt))
 
-st.caption("v5.1 Smart Offline - Answers science without key!")
+    st.chat_message("user").write(prompt)
+
+    # Get AI response
+    if has_brain and client:
+        with st.chat_message("assistant"):
+            with st.spinner("TATU dey think..."):
+                try:
+                    # Build messages for Groq
+                    messages = [{"role": "system", "content": "You are TATU AI, created by Fuseini Manaf in Ghana. You are helpful, smart, and friendly like ChatGPT. Answer everything."}]
+                    for r, c in st.session_state.chat_history[-10:]:
+                        role = "user" if r == "user" else "assistant"
+                        messages.append({"role": role, "content": c})
+                    messages.append({"role": "user", "content": prompt})
+
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=1000
+                    )
+                    answer = response.choices[0].message.content
+
+                    st.write(answer)
+                    st.session_state.chat_history.append(("assistant", answer))
+                    st.session_state.db["general"].append(("assistant", answer))
+                except Exception as e:
+                    st.error(f"Brain error: {e}")
+                    st.write("I be TATU, but my brain need small rest. Try again!")
+    else:
+        with st.chat_message("assistant"):
+            st.write("Add your Groq API key for ChatGPT brain! I'm TATU, built by Manaf in Ghana 🇬🇭")
+            st.session_state.chat_history.append(("assistant", "Add API key to activate me!"))
+
+st.sidebar.title("TATU Controls")
+if st.sidebar.button("Clear Chat"):
+    st.session_state.chat_history = []
+    st.session_state.db = {}
+    st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("Built by **Fuseini Manaf** 🇬🇭")
+st.sidebar.markdown("v6.0 - ChatGPT Brain Active")
