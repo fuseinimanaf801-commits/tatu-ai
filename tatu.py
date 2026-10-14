@@ -81,7 +81,8 @@ if st.session_state.get("last"):
         safe=st.session_state.last.replace("'","").replace('"',"")[:350]
         st.components.v1.html(f"<script>var u=new SpeechSynthesisUtterance();u.text='{safe}';speechSynthesis.speak(u);</script>",height=0)
 
-for a,b in reversed(st.session_state.db[name]["history"][-10:]):
+for item in reversed(st.session_state.db[n]):
+    a, b = item[:2] if len(item) >= 2 else (item[0], "")
     st.write(f"You: {a}")
     st.write(f"TATU: {b}")
     st.write("---")
