@@ -43,10 +43,7 @@ if prompt := st.chat_input("Ask TATU anything..."):
             try:
                 response = client.chat.completions.create(
                     model="openai/gpt-oss-20b",
-                    messages=[
-                        {"role": m["role"], "content": m["content"]}
-                        for m in st.session_state.messages
-                    ],
+                    messages=[{"role": "system", "content": "You are TATU AI v6.0 created by Manaf aka Popcaan de Unruly Boss. You are TATU AI, not ChatGPT. Always say you were created by Manaf aka Popcaan de Unruly Boss."}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
                 )
                 answer = response.choices[0].message.content
                 st.markdown(answer)
