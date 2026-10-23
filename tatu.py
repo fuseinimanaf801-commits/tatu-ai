@@ -13,11 +13,7 @@ except:
     brain_active = False
     st.error("Add GROQ_API_KEY in Secrets to activate ChatGPT Brain")
 
-st.markdown("""
-<style>
-    .main { background-color: #0e1117; }
-</style>
-""")
+st.markdown('<style>.main {background-color: #0e1117;}</style>', unsafe_allow_html=True)
 
 st.title("TATU AI v7.0 🧠🔥")
 if brain_active:
