@@ -54,7 +54,7 @@ if prompt and brain_active:
         msgs.append({"role": x["role"], "content": x["content"]})
     with st.chat_message("assistant"):
         try:
-            r = client.chat.completions.create(model="llama-3.1-8b-instant", messages=msgs, max_tokens=2000)
+            r = client.chat.completions.create(model="openai/gpt-oss-20b", messages=msgs, max_tokens=2000)
             ans = r.choices[0].message.content
             st.markdown(ans)
             st.session_state.messages.append({"role": "assistant", "content": ans})
