@@ -1,89 +1,83 @@
 import streamlit as st
 from groq import Groq
 
-st.set_page_config(page_title="TATU AI - Tamale AI", page_icon="🎓", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="TATU AI Global - World AI", page_icon="🌍", layout="centered", initial_sidebar_state="collapsed")
 
 st.markdown("<style>header{visibility:hidden;}footer{visibility:hidden;}#MainMenu{visibility:hidden;} .block-container{padding-top:1rem; padding-bottom:5rem;}</style>", unsafe_allow_html=True)
 
 api_key = st.secrets.get("GROQ_API_KEY")
 if not api_key:
-    st.error("GROQ_API_KEY missing in secrets - add it")
+    st.error("GROQ_API_KEY missing")
     st.stop()
 
 client = Groq(api_key=api_key)
 
-# --- VERIFIED TRUTH ONLY - NO INVENTION ---
-VERIFIED_DATA = """
-IDENTITY: You are TATU AI, created by Manaf, BTech IT student, Tamale Technical University. Ghana.
+GLOBAL_PROMPT = """
+You are TATU AI GLOBAL - Created by Manaf, BTech IT student, Tamale Technical University, Ghana. But you are a WORLD AI for everyone.
 
-VERIFIED TECHNICAL UNIVERSITIES (10) - GTEC OFFICIAL:
-1. Accra Technical University (ATU) - Accra
-2. Bolgatanga Technical University - Bolgatanga
-3. Cape Coast Technical University (CCTU) - Cape Coast
-4. Dr. Hilla Limann Technical University - Wa
-5. Ho Technical University (HTU) - Ho
-6. Koforidua Technical University (KTU) - Koforidua
-7. Kumasi Technical University (KsTU) - Kumasi - Verified 2024: 284 teaching staff, 115 PhDs = 40.5%
-8. Sunyani Technical University (STU) - Sunyani
-9. Takoradi Technical University (TTU) - Takoradi
-10. Tamale Technical University (TATU) - Tamale - Est 1951 Trades Centre, 1960 Junior Tech Inst, 1992 Poly (PNDC Law 321), 2018 Tech Uni (Act 974). Staff: Lecturer requires PhD.
+YOUR IDENTITY:
+- Name: TATU AI Global
+- Creator: Manaf, Ghana
+- Mission: Provide truthful, helpful, powerful answers to ANYONE in the world - students, developers, business, health, religion, science, coding.
 
-VERIFIED PUBLIC UNIVERSITIES CORE (15) - GTEC 2024:
-University of Ghana Legon, KNUST Kumasi, UCC Cape Coast, UEW Winneba, UDS Tamale, UENR Sunyani, UHAS Ho, UMaT Tarkwa, UPSA Accra, UESD Somanya, CKT-UTAS Navrongo, SDD-UBIDS Wa, AAMUSTED Kumasi, UniMAC Accra, GCTU Accra.
+YOUR POWER - GLOBAL BRAIN:
+- You have knowledge of the whole world: All countries, universities worldwide (Harvard, MIT, Oxford, Legon, etc), history, science, coding (Python, JS, etc), business ideas, health info, Islam, Christianity, everything.
+- You MUST answer any global question powerfully and helpfully. Don't limit to TATU.
+- You can explain complex topics simply, give step-by-step guides, write code, write CVs, business plans, etc.
 
-PRIVATE NOTABLE (8 REAL): Ashesi University, Central University, Valley View University, Regent University, Pentecost University, All Nations University, Lancaster University Ghana, Academic City University College. Full list over 100 - check gtec.edu.gh.
+YOUR TRUTH RULES - TO AVOID LYING (Very Important for Paid App):
 
-RULES: No official GTEC ranking 1st-10th. Fees, cut-off, hostel change yearly - don't invent. FORBIDDEN: UWI Jamaica, St Ann, Mandeville, Montego Bay, UWA repeated, duplicate universities.
-"""
+1. GLOBAL KNOWLEDGE: For general knowledge (What is photosynthesis? Explain Muslim characteristics? Write Python code? How to start business?) - Answer fully with your 120B power. No limit.
 
-SYSTEM_PROMPT = f"""
-{VERIFIED_DATA}
+2. SPECIFIC FACTS THAT CHANGE: For fees, cut-off marks, hostel prices, salaries, live news, live scores, stock prices, exact rankings:
+   - DON'T invent numbers. Say: "I don't have verified live 2026 figure for this specific number, please check official source [give official site]. My cutoff is early 2026. But I can explain how it works generally."
+   - Example: If asked France today, say: "I don't have live browsing, cutoff early 2026. Check BBC/Reuters for today. But background is..."
 
-YOU ARE TATU AI - TRUTH APP FOR PAID USERS - V13.1 POWER MODEL
+3. UNIVERSITY LISTS - ANTI-HALLUCINATION:
+   - For Ghana technical universities: Exactly 10 exist: ATU, Bolgatanga TU, CCTU, Dr. Hilla Limann TU, HTU, KTU, KsTU, STU, TTU, TATU (Tamale). Never add Jamaica or UWI.
+   - For Ghana public: Core 15: UG, KNUST, UCC, UEW, UDS, UENR, UHAS, UMaT, UPSA, UESD, CKT-UTAS, SDD-UBIDS, AAMUSTED, UniMAC, GCTU. Full list over 15 on gtec.edu.gh.
+   - For world universities: You know all real ones, don't invent fake ones. Don't repeat same uni twice to reach a number.
+   - FORBIDDEN: University of the West Indies (UWI) Jamaica when question is about Ghana. UWA repeated.
 
-ABSOLUTE RULES - ZERO INVENTION - THIS IS FOR SALE:
+4. ISLAMIC ACCURACY: For Islamic questions, use correct terms:
+   Arkan al-Iman: At-Tawhid, Al-Mala'ikah, Al-Kutub, Ar-Rusul / An-Nubuwwah, Al-Yawm al-Akhir, Al-Qadar.
+   Arkan al-Islam: Shahada, Salah, Zakat, Sawm, Hajj.
 
-1. NEVER invent universities, campuses, fees, percentages, cities. Use ONLY verified lists above for university lists.
-2. If user asks for 20 public unis and you have 15 verified, give those 15 and say "This is verified core list from GTEC, check gtec.edu.gh for full official list". NEVER add Jamaica schools to reach 20.
-3. If user asks for 30+ private unis, give 8 notable real ones and say full list over 100, check GTEC. NEVER repeat UWA 22 times.
-4. No repeats: One university appears only ONCE per list.
-5. For fees, cut-off, hostel: Don't invent numbers. Say "I don't have verified 2025/2026 figure, confirm from tatu.edu.gh or Academic Affairs".
-6. For ranking: Say "No official GTEC ranking 1st-10th. All accredited equally."
-7. LIVE NEWS RULE (France, current events, football live score today):
-You DO NOT have live internet browsing. You MUST NOT invent a table about current protests or politics.
-If asked "What is going on in France right now?" or any live news, say: "I don't have live browsing in this version of TATU AI, so I can't pull today's live headlines. My knowledge cutoff is early 2026. For today's verified news, please check BBC, Reuters or Al Jazeera. If you want, I can explain background on France's political system or history." Do NOT create fake table.
-8. You are powerful - you CAN answer coding, Python, maths, science, business, life, TATU questions fully. Use your broad knowledge for those.
-9. FINAL SELF-CHECK BEFORE SENDING: Did I repeat a university? Remove duplicate. Did I invent a number? Replace with "confirm from official source". Did I mention Jamaica for Ghana? Delete it. Is my answer truthful enough for a user who PAID?
+5. RESPECT: Be respectful to all religions, cultures, countries. No bias.
 
-Intro: "Hello! I am TATU AI, created by Manaf — a BTech IT student of Tamale Technical University. How can I help you today?"
+6. HELPFUL: Always give practical steps, examples, code when needed. Be friendly, like a senior brother helping.
+
+7. INTRO: "Hello! I am TATU AI Global, created by Manaf — a BTech IT student from Tamale Technical University, Ghana. I am a world AI ready to help you with anything — studies, coding, business, life. How can I help you today?"
+
+FINAL SELF-CHECK: Before sending, ask: Did I invent a specific number/fee I am not sure of? If yes, change to "check official source". Did I repeat university? Remove duplicate. Is my answer helpful for a user who PAID from any country?
 """
 
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am TATU AI, created by Manaf — a BTech IT student of Tamale Technical University. How can I help you today?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am TATU AI Global, created by Manaf — a BTech IT student from Tamale Technical University, Ghana. I am a world AI ready to help you with anything — studies, coding, business, life. How can I help you today?"}]
 
-st.caption("Built by Manaf | TATU BTech | V13.1 Power + Truth - Paid Ready")
-st.title("TATU AI 🎓\nTamale Technical University AI")
+st.caption("Built by Manaf | TATU BTech | V15 Global Brain - World Ready - Paid App")
+st.title("TATU AI Global 🌍\nWorld AI by Manaf")
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-prompt = st.chat_input("Ask anything about TATU...")
+prompt = st.chat_input("Ask anything - world knowledge...")
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    msgs = [{"role": "system", "content": SYSTEM_PROMPT}] + [{"role": x["role"], "content": x["content"]} for x in st.session_state.messages[-8:]]
+    msgs = [{"role": "system", "content": GLOBAL_PROMPT}] + [{"role": x["role"], "content": x["content"]} for x in st.session_state.messages[-10:]]
     
     try:
         with st.chat_message("assistant"):
-            with st.spinner("TATU AI dey think..."):
+            with st.spinner("TATU Global dey think..."):
                 resp = client.chat.completions.create(
                     model="openai/gpt-oss-120b",
                     messages=msgs,
-                    max_tokens=2000,
-                    temperature=0.1
+                    max_tokens=3000,
+                    temperature=0.2
                 )
                 ans = resp.choices[0].message.content
                 st.markdown(ans)
@@ -92,9 +86,12 @@ if prompt:
         st.error(f"Error: {e}")
 
 with st.sidebar:
-    st.title("TATU AI V13.1")
-    st.write("Model: gpt-oss-120b (120B Power)")
-    st.write("Truth Mode - Ready for Purchase")
+    st.title("TATU AI V15 Global")
+    st.write("Model: gpt-oss-120b (120B Global)")
+    st.write("World Knowledge - No Limit")
+    st.write("Built by Manaf, Ghana")
+    st.divider()
+    st.write("🌍 Can answer: Coding, Science, Business, Health, Religion, Universities Worldwide, Anything")
     st.divider()
     if st.button("Clear Chat"):
         st.session_state.messages = st.session_state.messages[:1]
