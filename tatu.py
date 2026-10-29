@@ -1,115 +1,132 @@
 import streamlit as st
 from groq import Groq
 import re
+import requests
+from duckduckgo_search import DDGS
 
-st.set_page_config(page_title="TATU AI V17", page_icon="🌍", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="TATU AI V21 Google Brain", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
-header{visibility:hidden;}footer{visibility:hidden;}#MainMenu{visibility:hidden;}
-.block-container{padding-top:1rem; padding-bottom:6rem;}
-a {text-decoration:none !important; color:#60A5FA !important;}
-.link-card {border:1px solid #2a2a2a; background:#151515; padding:12px 16px; border-radius:14px; margin:6px 0; display:flex; gap:12px; align-items:center;}
-.link-card:hover {border-color:#60A5FA; background:#1f1f1f;}
-.link-card-icon {font-size:22px;}
-.link-card-title {font-weight:700; color:#fff; font-size:13px;}
-.link-card-url {font-size:11px; color:#888; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-/* Make tables scrollable on mobile */
-div[data-testid="stMarkdownContainer"] table {display:block; overflow-x:auto; white-space:nowrap;}
-/* Step cards */
-.step-box {border:1px solid #2a2a2a; background:#121212; padding:14px; border-radius:12px; margin:8px 0;}
+header,footer,#MainMenu{visibility:hidden;}
+.block-container{padding-top:1rem; padding-bottom:7rem;}
+.link-card{border:1px solid #2a2a2a;background:#151515;padding:12px 16px;border-radius:14px;margin:6px 0;display:flex;gap:12px;align-items:center;}
+.link-card:hover{border-color:#4285F4;background:#1f1f1f;}
+.link-card-icon{font-size:22px;}
+.link-card-title{font-weight:700;color:#fff;font-size:13px;}
+.link-card-url{font-size:11px;color:#888;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 """, unsafe_allow_html=True)
 
 api_key = st.secrets.get("GROQ_API_KEY")
 client = Groq(api_key=api_key)
 
-def extract_unique_links(text):
-    urls = re.findall(r'https?://[^\s\)\]\"\<]+', text)
-    # clean and dedup by domain+path
-    seen = set()
-    unique = []
-    for u in urls:
-        u = u.rstrip('.,;')
-        key = u.lower().split('?')[0].rstrip('/')
-        if key not in seen:
-            seen.add(key)
-            unique.append(u)
-    return unique[:5]
+# --- GOOGLE BRAIN FUNCTION ---
+def google_brain_search(query, max_results=5):
+    results_text = ""
+    links = []
+    try:
+        # Use DuckDuckGo free - behaves like Google
+        with DDGS() as ddgs:
+            search_results = list(ddgs.text(query, max_results=max_results))
+            for r in search_results:
+                title = r.get('title','')
+                body = r.get('body','')
+                href = r.get('href','')
+                if href:
+                    links.append(href)
+                    results_text += f"- {title}: {body} | URL: {href}\n"
+    except Exception as e:
+        results_text = f"Search failed: {e}"
+    
+    # Fallback: also try official Ghana domains
+    if "wassce" in query.lower() or "waec" in query.lower():
+        links.extend(["https://www.waecgh.org", "https://gh.waecdirect.org"])
+    if "kalpohin" in query.lower():
+        links.extend(["https://en.wikipedia.org/wiki/Kalpohin_Senior_High_School", "https://ges.gov.gh"])
+    
+    return results_text, list(dict.fromkeys(links))[:5] # dedup
 
-def render_link_cards(urls):
+def extract_links(text):
+    urls = re.findall(r'https?://[^\s\)\]\"\<]+', text)
+    seen=set(); uniq=[]
+    for u in urls:
+        u=u.rstrip('.,;')
+        k=u.lower().split('?')[0].rstrip('/')
+        if k not in seen:
+            seen.add(k); uniq.append(u)
+    return uniq[:6]
+
+def render_cards(urls):
     if not urls: return
-    st.markdown("### 🔗 Official Sources & Links")
+    st.markdown("### 🔍 Google Brain Sources (Live Search)")
     for url in urls:
         domain = url.replace("https://","").replace("http://","").split("/")[0]
-        short = url[:65]
+        short = url[:70]
         st.markdown(f"""<a href="{url}" target="_blank"><div class="link-card"><div class="link-card-icon">🌐</div><div><div class="link-card-title">{domain}</div><div class="link-card-url">{short}</div></div></div></a>""", unsafe_allow_html=True)
 
-SYSTEM_V17 = """
-You are TATU AI V17 Premium - Created by Manaf, BTech IT, Tamale Technical University, Ghana. World AI.
+SYSTEM_V21 = """
+You are TATU AI V21 GOOGLE BRAIN - Final Edition, built by Manaf, BTech IT, Tamale Technical University, Ghana.
 
-IMPROVEMENT INSTRUCTIONS FOR V17:
-1. MOBILE FRIENDLY: Don't use wide 3-column markdown tables that cut off on phone. Instead use:
-   - Numbered steps with bold headings
-   - Or 2-column tables max
-   - Use bullet points for details
-   Example GOOD:
-   **Step 1: Verify official portal**
-   Go to https://www.waecgh.org - official WAEC Ghana.
-   
-   BAD: | Step | What to Do | Details | - too wide, cuts on phone.
+You have TWO brains:
+1. Groq 120B global brain (ChatGPT-level)
+2. GOOGLE BRAIN - live search results provided below
 
-2. NO LINK DUPLICATION: Provide max 3-4 UNIQUE official links. Don't repeat same domain 4 times. Use:
-   - https://www.waecgh.org
-   - https://www.waecgh.org/result-checker (online)
-   - https://www.waecgh.org/sms-result-checker (if exists) or contact page
-   Not 4x same.
-
-3. PRACTICAL & GHANA FOCUSED for WASSCE/WAEC: Give exact SMS format: Example: WASSCE*2024*1234567890*... etc if known, else say check site. Give PIN/serial advice, scam warning.
-
-4. GLOBAL BRAIN still: Can answer ChatGPT, coding, business, religion, top world universities, everything worldwide.
-
-5. TRUTH RULES: No fake fees, no inventing. For live/today: say check official. Ghana tech universities = 10 exactly: ATU, Bolgatanga TU, CCTU, Dr. Hilla Limann TU, HTU, KTU, KsTU, STU, TTU, TATU. No Jamaica. No duplicate uni. Islamic terms correct: At-Tawhid, Al-Mala'ikah, Al-Kutub, Ar-Rusul, Al-Yawm al-Akhir, Al-Qadar.
-
-6. At end of answer, add 2-4 official links max, unique.
-
-INTRO: "Hello! I am TATU AI V17, created by Manaf — BTech IT, Tamale Technical University, Ghana. Improved for mobile & premium links. How can I help?"
-
-Be concise, mobile-friendly, premium.
+RULES:
+- If LIVE SEARCH RESULTS are provided, USE THEM FIRST. Do not invent.
+- For Kalpohin SHS: motto is Discipline and Hard Work per live search, founded 1987, nickname KALISCO, Category B, mixed, Kalpohin Estates Tamale. Never invent P.O. Box or phone.
+- For WASSCE: Use waecgh.org live links
+- Ghana technical universities = exactly 10: ATU, Bolgatanga TU, CCTU, Dr. Hilla Limann TU, HTU, KTU, KsTU, STU, TTU, TATU. No Jamaica.
+- Mobile-friendly: Use bullets, bold headings, not wide tables
+- Provide max 4 unique official links at end
+- Truth first: If not sure, say check official ges.gov.gh / waecgh.org
 """
 
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am TATU AI V17, created by Manaf — BTech IT, Tamale Technical University, Ghana. Improved for mobile & premium links. How can I help you today?"}]
+    st.session_state.messages = [{"role":"assistant","content":"🔍 Hello! I am TATU AI V21 Google Brain Edition, built by Manaf — BTech IT, TATU Ghana. I now search live like Google + ChatGPT brain. Ask me anything — SHS motto, WASSCE, coding, Harvard, anything!"}]
 
-st.caption("Built by Manaf | TATU BTech | V17 Improved - Mobile + No Duplicate Links 💎")
-st.title("TATU AI Global V17 🌍")
+st.caption("TATU AI V21 Google Brain 🌍 | Built by Manaf | Live Search + ChatGPT Brain | Final Paid Edition 💎")
+st.title("TATU AI V21 - Google Brain 🔍")
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask anything...")
+prompt = st.chat_input("Ask with Google Brain...")
 if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role":"user","content":prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    msgs = [{"role": "system", "content": SYSTEM_V17}] + [{"role": x["role"], "content": x["content"]} for x in st.session_state.messages[-12:]]
+    
     with st.chat_message("assistant"):
-        with st.spinner("V17 dey think..."):
-            resp = client.chat.completions.create(model="openai/gpt-oss-120b", messages=msgs, max_tokens=3200, temperature=0.2)
+        with st.spinner("🔍 Google Brain dey search live..."):
+            live_text, live_links = google_brain_search(prompt, max_results=5)
+        
+        with st.spinner("🧠 Brain dey think with Google results..."):
+            # Build prompt with live search
+            search_context = f"\nLIVE GOOGLE SEARCH RESULTS FOR QUERY: '{prompt}'\n{live_text}\n\nINSTRUCTION: Use these live results to answer. Cite URLs. If motto/search says Discipline and Hard Work, use that, not invent.\n"
+            
+            msgs = [{"role":"system","content":SYSTEM_V21 + search_context}] + [{"role":x["role"],"content":x["content"]} for x in st.session_state.messages[-10:]]
+            
+            resp = client.chat.completions.create(model="openai/gpt-oss-120b", messages=msgs, max_tokens=3500, temperature=0.2)
             ans = resp.choices[0].message.content
+            
             st.markdown(ans, unsafe_allow_html=True)
-            urls = extract_unique_links(ans)
-            if urls:
-                render_link_cards(urls)
-            st.session_state.messages.append({"role": "assistant", "content": ans})
+            
+            # Combine live links + links from answer
+            all_links = live_links + extract_links(ans)
+            all_links = list(dict.fromkeys(all_links))[:5]
+            if all_links:
+                render_cards(all_links)
+            
+            st.session_state.messages.append({"role":"assistant","content":ans})
 
 with st.sidebar:
-    st.title("V17 Change Log")
-    st.write("✅ Fixed duplicate links")
-    st.write("✅ Fixed table cut on phone")
-    st.write("✅ Mobile-friendly steps")
-    st.write("✅ Cleaner premium UI")
+    st.title("V21 Google Brain")
+    st.success("🔍 Live Search: ON")
+    st.write("✅ No fake motto")
+    st.write("✅ Live links like Google")
+    st.write("✅ Global brain + Ghana truth")
     st.divider()
     if st.button("Clear Chat"):
         st.session_state.messages = st.session_state.messages[:1]
