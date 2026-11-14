@@ -69,16 +69,27 @@ if prompt:
         lang_instruction = "Answer in clear simple English."
 
     with st.chat_message("assistant"):
-        try:
-            chat_completion = client.chat.completions.create(
-                messages=[{"role": "system", "content": f"You are TATU AI V22 Google Brain created by Manaf, BTech IT, TATU Ghana. {lang_instruction} You search live like Google + ChatGPT brain. Help with SHS motto, WASSCE, coding, Harvard, TATU, anything."}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
-                model="llama-3.1-8b-instant",
-            )
-            response = chat_completion.choices[0].message.content
+        # V22.2 FIX: Try working models one by one
+        MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+        response = None
+        last_error = ""
+        for model_name in MODELS:
+            try:
+                chat_completion = client.chat.completions.create(
+                    messages=[{"role": "system", "content": f"You are TATU AI V22 Google Brain created by Manaf, BTech IT, TATU Ghana. {lang_instruction} You search live like Google + ChatGPT brain. Help with SHS motto, WASSCE, coding, Harvard, TATU, anything."}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
+                    model=model_name,
+                )
+                response = chat_completion.choices[0].message.content
+                break
+            except Exception as e:
+                last_error = str(e)
+                continue
+        
+        if response:
             st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
-        except Exception as e:
-            st.error(f"Error: {e}")
+        else:
+            st.error(f"All models failed. Last error: {last_error}")
 
 if st.button("Clear Chat"):
     st.session_state.messages = []
